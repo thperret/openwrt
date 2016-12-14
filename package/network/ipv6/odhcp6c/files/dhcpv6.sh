@@ -30,14 +30,18 @@ proto_dhcpv6_init_config() {
 	proto_config_add_int "soltimeout"
 	proto_config_add_boolean fakeroutes
 	proto_config_add_boolean sourcefilter
+	proto_config_add_boolean 'only_specified_opts:bool'
+	proto_config_add_boolean 'dont_send_fqdn:bool'
+	proto_config_add_list "sendopts"
+	proto_config_add_int "priority"
 }
 
 proto_dhcpv6_setup() {
 	local config="$1"
 	local iface="$2"
 
-	local reqaddress reqprefix clientid reqopts noslaaconly forceprefix extendprefix norelease ip6prefix iface_dslite iface_map iface_464xlat ifaceid userclass vendorclass delegate zone_dslite zone_map zone_464xlat zone soltimeout fakeroutes sourcefilter
-	json_get_vars reqaddress reqprefix clientid reqopts noslaaconly forceprefix extendprefix norelease ip6prefix iface_dslite iface_map iface_464xlat ifaceid userclass vendorclass delegate zone_dslite zone_map zone_464xlat zone soltimeout fakeroutes sourcefilter
+	local reqaddress reqprefix clientid reqopts noslaaconly forceprefix extendprefix norelease ip6prefix iface_dslite iface_map iface_464xlat ifaceid userclass vendorclass delegate zone_dslite zone_map zone_464xlat zone soltimeout fakeroutes sourcefilter only_specified_opts send_fqdn accept_reconfigure sendopts priority
+	json_get_vars reqaddress reqprefix clientid reqopts noslaaconly forceprefix extendprefix norelease ip6prefix iface_dslite iface_map iface_464xlat ifaceid userclass vendorclass delegate zone_dslite zone_map zone_464xlat zone soltimeout fakeroutes sourcefilter only_specified_opts send_fqdn accept_reconfigure sendopts priority
 
 
 	# Configure
@@ -64,6 +68,19 @@ proto_dhcpv6_setup() {
 	for opt in $reqopts; do
 		append opts "-r$opt"
 	done
+
+	[ "$only_specified_opts" = "1" ] && append opts "-R"
+
+	[ "$send_fqdn" = "0" ] && append opts "-f"
+
+	[ "$accept_reconfigure" = "0" ] && append opts "-a"
+
+	local customopt
+	for customopt in $sendopts; do
+		append opts "-x$customopt"
+	done
+
+	[ "$priority" -gt 0 ] && append opts "-o$priority"
 
 	append opts "-t${soltimeout:-120}"
 
